@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="zh-CN">
+
+    <head>
+        <!-- 必须的 meta 标签 -->
+        <meta charset="utf-8">
+        <title>EVE国服手游价格</title>
+
+        <script src="./assets/js/echarts.js"></script>
+        <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src="https://code.highcharts.com/modules/series-label.js"></script>
+        <script src="https://code.highcharts.com/modules/exporting.js"></script>
+        <script src="https://code.highcharts.com/modules/export-data.js"></script>
+        <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+
+        <style>
+            #navbar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 90px;
+                /* background-color: blue; */
+                transition: top 0.3s;
+                padding: .0 0;
+                background-color: transparent;
+                background-image: linear-gradient(to bottom, rgba(var(--bd-violet-rgb), 1), rgba(var(--bd-violet-rgb), 0.95));
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+
+            }
+
+            :root {
+                /* --bd-violet-rgb: 112.520718,44.062154,249.437846; */
+                --bd-violet-rgb: 255, 201, 36;
+            }
+            .highcharts-figure,
+            .highcharts-data-table table {
+                min-width: 360px;
+                max-width: 800px;
+                /* margin: 1em auto; */
+            }
+
+            .highcharts-data-table table {
+                font-family: Verdana, sans-serif;
+                border-collapse: collapse;
+                border: 1px solid #ebebeb;
+                margin: 10px auto;
+                text-align: center;
+                width: 100%;
+                max-width: 500px;
+            }
+
+            .highcharts-data-table caption {
+                padding: 1em 0;
+                font-size: 1.2em;
+                color: #555;
+            }
+
+            .highcharts-data-table th {
+                font-weight: 600;
+                padding: 0.5em;
+            }
+
+            .highcharts-data-table td,
+            .highcharts-data-table th,
+            .highcharts-data-table caption {
+                padding: 0.5em;
+            }
+
+            .highcharts-data-table thead tr,
+            .highcharts-data-table tr:nth-child(even) {
+                background: #f8f8f8;
+            }
+
+            .highcharts-data-table tr:hover {
+                background: #f1f7ff;
+            }
+
+        </style>
+
+
+    </head>
+
+    <script>
+        var prevScrollpos = window.pageYOffset;
+        window.onscroll = function () {
+            var currentScrollPos = window.pageYOffset;
+            if (prevScrollpos > currentScrollPos) {
+                document.getElementById("navbar").style.top = "0";
+            } else {
+                document.getElementById("navbar").style.top = "-100px";
+            }
+            prevScrollpos = currentScrollPos;
+        }
+    </script>
+
+
+
+    <body>
+        <!-- 一个下滑就会向上隐藏的的顶部标题颜色块 -->
+        <div id="navbar">
+            <nav>
+                <ul style="padding: 0; margin: 0;">
+                    <li style="padding: 5px 5px 40px 40px; margin: 0;"><a href=""><img src="./assets/sign.jpg" width="80"
+                                height="80" style="border-radius: 50%;"></a></li>
+
+                </ul>
+
+            </nav>
+        </div>
+
+
+
+        <!-- 这里是页面内容 -->
+        <div id="content" style="margin-top: 100px;">
+
+            <figure class="highcharts-figure">
+                <div id="container"></div>
+                <p class="highcharts-description">
+                </p>
+            </figure>
+            
+
+
+            <table id="demoTable"></table>
+        </div>
+
+
+    </body>
+
+
+
+    <script>
+        // csv获取
+        // 获取assets目录下所有文件名
+        var files_name = [];
+        var time_data_csv_data = {};
+        var data_csv_data = [];
+
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', 'data/', true);
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                _files_name = xhr.response.split('\n').filter(function (file) {
+                    return file.trim() !== '' && file.trim().includes('<span class="name">') && !file.trim().includes('<ul');
+                });
+                console.log(_files_name);  //<span class="name">2023_07_14_21_40_17_物品价格.csv</span>
+
+                _files_name.forEach(s1 => {
+                    const regex = /<span class="name">([^<]+)<\/span>/;
+                    const match = regex.exec(s1);
+                    const text = match[1]; // "2023_07_15_08_53_53_物品价格.csv"
+                    files_name.push(text); // ["2023_07_15_08_53_53_物品价格.csv", "2023_07_
+                        
+                    // 读取csv
+                    let table = document.getElementById("demoTable");
+                    let file = './data/' + text;
+                    
+                    let _s1 = text.replace(/_/g,"");
+                    console.log(_s1);
+                    //  var _s1_time = _s1.substring(0, 4) + "/" + _s1.substring(4, 6) + "/" + _s1.substring(6, 8) + " " + _s1.substring(8, 10) + ":" + _s1.substring(10, 12)+ ":" + _s1.substring(12, 14);
+                    var _s1_time = parseInt(_s1.substring(0, 14));
+                    if (time_data_csv_data['time'] === null || time_data_csv_data['time'] === undefined){
+                        time_data_csv_data['time'] = [];
+                    }
+                    time_data_csv_data['time'].push(_s1_time);
+
+                    fetch(file)
+                    .then((res) => { return res.text(); })
+                    .then((csv) => {
+                        // (B1) REMOVE OLD TABLE ROWS
+                        table.innerHTML = "";
+                        
+                        // (B2) GENERATE TABLE
+                        csv = csv.split("\r\n");
+                        for (let row of csv) {
+                            let tr = table.insertRow();
+                            for (let col of row.split(",")) {
+                                let td = tr.insertCell();
+                                td.innerHTML = col;
+                            }
+                        }
+
+                        // csv = csv.split("\r\n");
+                        for (let row of csv) {
+                            _row0 = row.split(",")[0];
+                            if (_row0 !== "名称"){
+                                if (time_data_csv_data[_row0] === null || time_data_csv_data[_row0] === undefined){
+                                    time_data_csv_data[_row0] = [];
+                                }
+                                time_data_csv_data[_row0].push(parseInt(row.split(",")[1])); // {名称: 价格}
+
+                            }
+                        }
+                    })
+                    .then((AAAAAA) =>{
+                        // console.log(files_name);
+                
+                        let _t = Object.assign(time_data_csv_data) ;
+                        console.log(_t);
+                        for (let _key in _t) {
+                            // console.log(_key + ': ' + _t[_key]);
+                            if (_key !== "time"){
+                                let obj = {};
+                                obj["name"] = _key;
+                                obj["data"] = _t[_key];
+                                data_csv_data.push(obj);
+                            }
+                        }
+                        // let data_csv_data = _t;
+                        
+                        console.log(time_data_csv_data);
+                        console.log(time_data_csv_data["time"]);
+
+                        // 表格
+                        Highcharts.dateFormat("%Y/%m/%d %H:%M:%S", 20, true);
+
+                        Highcharts.chart('container', {
+
+                            title: {
+                                text: '总表',
+                                align: 'left'
+                            },
+
+                            /**subtitle: {
+                                text: 'By Job Category. Source: <a href="https://irecusa.org/programs/solar-jobs-census/" target="_blank">IREC</a>.',
+                                align: 'left'
+                            },**/
+
+                            yAxis: {
+                                title: {
+                                    text: '价格(isk)'
+                                }
+                            },
+
+                            xAxis: {
+                                type: 'datetime',
+                                dateFormat: "%Y/%m/%d %H:%M:%S",
+                                categories: time_data_csv_data["time"]
+
+                            },
+
+                            legend: {
+                                layout: 'vertical',
+                                align: 'right',
+                                verticalAlign: 'middle'
+                            },
+
+                            /*plotOptions: {
+                                series: {
+                                    label: {
+                                        connectorAllowed: false
+                                    },
+                                    pointStart: 2010
+                                }
+                            },*/
+
+                            series: data_csv_data,
+
+                            responsive: {
+                                rules: [{
+                                    condition: {
+                                        // maxWidth: 500
+                                    },
+                                    chartOptions: {
+                                        legend: {
+                                            layout: 'horizontal',
+                                            align: 'center',
+                                            verticalAlign: 'bottom'
+                                        }
+                                    }
+                                }]
+                            }
+
+                        });
+                    });
+
+                });
+                
+
+            }
+            
+        };
+        xhr.send();
+        
+        
+        
+        
+
+    </script>
+
+    <script>
+
+        
+
+        
+
+    </script>
+
+
+
+</html>
